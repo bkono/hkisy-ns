@@ -1,0 +1,23 @@
+{
+  "name": "NodejsTemplate",
+  "docs": "https://github.com/UniversalDevicesInc/poly-template-nodejs",
+  "type": "node",
+  "executable": "nodeserver.js",
+  "install": "install.sh",
+  "install_cloud": "install_cloud.sh",
+  "description": "Example node.js based NodeServer",
+  "notice": "",
+  "shortPoll": "5",
+  "longPoll": "60",
+  "profile_version": "1.1.0",
+  "credits": [
+    {
+      "title": "Example Node.js based NodeServer",
+      "author": "Benoit Mercier",
+      "version": "1.1.1",
+      "date": "March 29th, 2020",
+      "source": "https://github.com/UniversalDevicesInc/poly-template-nodejs",
+      "license": "MIT"
+    }
+  ]
+}
