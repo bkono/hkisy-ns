@@ -1,15 +1,22 @@
 ND-CONTROLLER-NAME = Node server status
 ND-CONTROLLER-ICON = GenericCtl
 ST-CONTROLLER-ST-NAME = Status
-CMD-CONTROLLER-DISCOVER-NAME = Discover new devices
-CMD-CONTROLLER-CREATE_NEW-NAME = Create a new device
+# CMD-CONTROLLER-DISCOVER-NAME = Discover new devices
+CMD-CONTROLLER-CREATE_NEW-NAME = Start HomeKit Bridge
 CMD-CONTROLLER-UPDATE_PROFILE-NAME = Update node server profile
 CMD-CONTROLLER-REMOVE_NOTICES-NAME = Remove node server notices
 CMD-CONTROLLER-QUERY-NAME = Query
 
-ND-VNODE_DIMMER-NAME = Virtual node
-ND-VNODE_DIMMER-ICON = Lamp
-ST-VN-ST-NAME = Status
-CMD-VN-DON-NAME = On
-CMD-VN-DOF-NAME = Off
-CMD-VN-QUERY-NAME = Query
+ND-HK-NAME = HomeKit Bridge
+ND-HK-ICON = Output
+ST-HK-ST-NAME = Status
+ST-HK-GV0-NAME = Bridge Status
+CMD-HK-DON-NAME = Start
+CMD-HK-DOF-NAME = Stop
+CMD-HK-QUERY-NAME = Query
+
+EN_I_HK_STATE-0 = Stopped
+EN_I_HK_STATE-1 = Running
+EN_I_HK_STATE-2 = Not Responding
+EN_I_HK_STATE-3 = Not Responding
+

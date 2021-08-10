@@ -2,3 +2,7 @@
 node_modules/
 logs/
 .idea/
+hkisy
+.hkisy.config.json
+db/
+bin/
