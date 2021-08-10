@@ -9,27 +9,26 @@
 // nodeDefId must match the nodedef id in your nodedef
 const nodeDefId = 'CONTROLLER';
 
-module.exports = function(Polyglot) {
+module.exports = function(Polyglot, callAsync, createHomeKitBridgeNode) {
   // Utility function provided to facilitate logging.
   const logger = Polyglot.logger;
 
   // In this example, we also need to have our custom node because we create
   // nodes from this controller. See onCreateNew
-  const MyNode = require('./MyNode.js')(Polyglot);
+  const HomeKitNode = require('./HomeKitBridgeNode.js')(Polyglot);
 
   class Controller extends Polyglot.Node {
     // polyInterface: handle to the interface
     // address: Your node address, withouth the leading 'n999_'
     // primary: Same as address, if the node is a primary node
     // name: Your node name
-    constructor(polyInterface, primary, address, name) {
+    constructor(polyInterface, primary, address, name, hkBridge) {
       super(nodeDefId, polyInterface, primary, address, name);
+      this.hkBridge = hkBridge;
 
       // Commands that this controller node can handle.
       // Should match the 'accepts' section of the nodedef.
       this.commands = {
-        CREATE_NEW: this.onCreateNew,
-        DISCOVER: this.onDiscover,
         UPDATE_PROFILE: this.onUpdateProfile,
         REMOVE_NOTICES: this.onRemoveNotices,
         QUERY: this.query,
@@ -38,44 +37,20 @@ module.exports = function(Polyglot) {
       // Status that this controller node has.
       // Should match the 'sts' section of the nodedef.
       this.drivers = {
-        ST: { value: '1', uom: 2 }, // uom 2 = Boolean. '1' is True.
+        ST: {value: '1', uom: 2}, // uom 2 = Boolean. '1' is True.
       };
 
-      this.isController = true;
-    }
-
-    // Creates a new node using MyNode class, using a sequence number.
-    // It needs to be an async function because we use the
-    // this.polyInterface.addNode async function
-    async onCreateNew() {
-      const prefix = 'node';
-      const nodes = this.polyInterface.getNodes();
-
-      // Finds the first available address and creates a node.
-      for (let seq = 0; seq < 999; seq++) {
-        // address will be <prefix><seq>
-        const address = prefix + seq.toString().padStart(3, '0');
-
-        if (!nodes[address]) {
-          // ISY Address will be n<profileNum>_<prefix><seq>
-          // name will be <prefix><seq>
-          try {
-            const result = await this.polyInterface.addNode(
-              new MyNode(this.polyInterface, this.address, address, address)
-            );
-
-            logger.info('Add node worked: %s', result);
-          } catch (err) {
-            logger.errorStack(err, 'Add node failed:');
-          }
-          break;
+      const _this = this;
+      setTimeout(function() {
+        try {
+          logger.info('Auto-creating HomeKit Bridge node');
+          callAsync(createHomeKitBridgeNode(_this.address))
+        } catch (err) {
+          logger.error('Error while auto-creating HomeKit Bridge node:', err);
         }
-      }
-    }
+      }, 5000);
 
-    // Here you could discover devices from a 3rd party API
-    onDiscover() {
-      logger.info('Discovering');
+      this.isController = true;
     }
 
     // Sends the profile files to ISY
@@ -87,14 +62,11 @@ module.exports = function(Polyglot) {
     onRemoveNotices() {
       this.polyInterface.removeNoticesAll();
     }
-  };
+  }
 
-  // Required so that the interface can find this Node class using the nodeDefId
   Controller.nodeDefId = nodeDefId;
-
   return Controller;
 };
-
 
 // Those are the standard properties of every nodes:
 // this.id              - Nodedef ID

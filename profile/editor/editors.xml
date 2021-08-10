@@ -1,10 +1,20 @@
 <!-- Version 0.0.1 -->
 <editors>
 
-  <editor id="PERCENT">
-    <!-- 51 is percentage -->
-    <range uom="51" subset="0-100" />
-  </editor>
+    <editor id="PERCENT">
+        <!-- 51 is percentage -->
+        <range uom="51" subset="0-100"/>
+    </editor>
+
+    <editor id="BOOLEAN">
+        <!-- 2 is boolean -->
+        <range uom="2" subset="0-1"/>
+    </editor>
+
+    <editor id="I_HK_STATE">
+        <!-- 0 is offline, 1 is online, 2 is reconnecting, 3 is not responding -->
+        <range uom="25" subset="0-3" nls="EN_I_HK_STATE"/>
+    </editor>
 
 
 </editors>

@@ -6,12 +6,8 @@ const fs = require('fs');
 const markdown = require('markdown').markdown; // For Polyglot-V2 only
 const AsyncLock = require('async-lock');
 
-// Loads the appropriate Polyglot interface module.
-const Polyglot = useCloud() ?
-  require('pgc_interface') : // Cloud module
-  require('polyinterface'); // Polyglot V2 module (On-Premise)
-
-// If your nodeserver only supports the cloud, use pgc_interface only.
+// Load polyinterface, this NS is on-prem only.
+const Polyglot = require('polyinterface');
 
 // Use logger.<debug|info|warn|error>()
 // Logs to <home>/.polyglot/nodeservers/<your node server>/logs/<date>.log
@@ -19,26 +15,21 @@ const Polyglot = useCloud() ?
 // All log entries prefixed with NS: Comes from your NodeServer.
 // All log entries prefixed with POLY: Comes from the Polyglot interface
 const logger = Polyglot.logger;
-const lock = new AsyncLock({ timeout: 500 });
+const lock = new AsyncLock({timeout: 500});
 
 // Those are the node definitions that our nodeserver uses.
 // You will need to edit those files.
-const ControllerNode = require('./Nodes/ControllerNode.js')(Polyglot);
-const MyNode = require('./Nodes/MyNode.js')(Polyglot);
+const delay = ms => new Promise(_ => setTimeout(_, ms));
 
-// Names of our customParams
-const emailParam = 'User';
-const pwParam = 'Password';
-const hostParam = 'Host';
-const portParam = 'Port';
+const hkBridge = require('./lib/HomeKitBridge')(Polyglot);
+logger.info('hkBridge required: [ ' + hkBridge + ' ]');
+const ControllerNode = require('./Nodes/ControllerNode.js')(Polyglot, callAsync, createHomeKitStatusNode);
+const HomeKitBridgeNode = require('./Nodes/HomeKitBridgeNode.js')(Polyglot, bridgeStart, bridgeStop, bridgeIsStarted);
 
-// UI customParams default values. Param must have at least 1 character
-const defaultParams = {
-  [emailParam]: ' ',
-  [pwParam]: ' ',
-  [hostParam]: ' ',
-  [portParam]: ' ',
-};
+const path = require('path');
+const binPath = path.join(__dirname, './bin/');
+const confFile = '.hkisy.config.json';
+const confFilePath = binPath + confFile;
 
 // UI Parameters: typedParams - Feature available in Polyglot-V2 only:
 // Custom parameters definitions in front end UI configuration screen
@@ -57,136 +48,118 @@ const defaultParams = {
 // 	 list of objects by UI, otherwise, it's treated as a
 // 	 single / list of single values
 
-// const typedParams = [
-//   { name: 'host', title: 'Host', isRequired: true},
-//   { name: 'port', title: 'Port', isRequired: true, type: 'NUMBER'},
-//   { name: 'user', title: 'User', isRequired: true},
-//   { name: 'password', title: 'Password', isRequired: true},
-//   { name: 'list', title: 'List of values', isList: true },
-// ];
+const typedParams = [
+  {name: 'isy-host', title: 'ISY Host', isRequired: true},
+  {name: 'isy-user', title: 'ISY User', isRequired: true},
+  {name: 'isy-password', title: ' ISY Password', isRequired: true},
+  {name: 'port', title: 'Port', isRequired: true, type: 'NUMBER'},
+  {name: 'pin', title: 'Pin', isRequired: true},
+];
 
 logger.info('Starting Node Server');
 
 // Create an instance of the Polyglot interface. We need pass all the node
 // classes that we will be using.
-const poly = new Polyglot.Interface([ControllerNode, MyNode]);
+const poly = new Polyglot.Interface([ControllerNode, HomeKitBridgeNode]);
 
 // Connected to MQTT, but config has not yet arrived.
 poly.on('mqttConnected', function() {
   logger.info('MQTT Connection started');
 });
 
+let currentConfig = {};
+if (fs.existsSync(confFilePath)) {
+  currentConfig = fs.readFileSync(confFilePath);
+}
+
 // Config has been received
-poly.on('config', function(config) {
+poly.on('config', async function(config) {
   const nodesCount = Object.keys(config.nodes).length;
   logger.info('Config received has %d nodes', nodesCount);
-
-  // If we want to see the config content (Without the long nodes array):
-  // logger.info('Received config: %o',
-  //    Object.assign({}, config, { nodes: '<nodes>' }));
-
-  // Important config options:
-  // config.nodes: Our nodes, with the node class applied
-  // config.customParams: Configuration parameters from the UI
-  // config.newParamsDetected: Flag which tells us that customParams changed
-  // config.typedCustomData: Configuration parameters from the UI (if typed)
 
   // If this is the first config after a node server restart
   if (config.isInitialConfig) {
     // Removes all existing notices on startup.
     poly.removeNoticesAll();
 
-    // Use options specific to PGC vs Polyglot-V2
-    if (poly.isCloud) {
-      logger.info('Running nodeserver in the cloud');
+    logger.info('Running nodeserver on-premises');
 
-      // Will send the profile if the version is server.json is changed, or
-      // if the profile has never been sent. Exists only for PGC.
-      poly.updateProfileIfNew();
-    } else {
-      logger.info('Running nodeserver on-premises');
-      // Profile files are sent automatically the first time.
+    // Sets the configuration fields in the UI / Available in Polyglot V2 only
+    poly.saveTypedParams(typedParams);
 
-      // Sets the configuration fields in the UI / Available in Polyglot V2 only
-      // poly.saveTypedParams(typedParams);
-
-      // Sets the configuration doc shown in the UI
-      // Available in Polyglot V2 only
-      const md = fs.readFileSync('./configdoc.md');
-      poly.setCustomParamsDoc(markdown.toHTML(md.toString()));
-    }
-
-    // Sets the configuration fields in the UI
-    initializeCustomParams(config.customParams);
+    // Sets the configuration doc shown in the UI
+    // Available in Polyglot V2 only
+    const md = fs.readFileSync('./configdoc.md');
+    poly.setCustomParamsDoc(markdown.toHTML(md.toString()));
 
     // If we have no nodes yet, we add the first node: a controller node which
     // holds the node server status and control buttons The first device to
     // create should always be the nodeserver controller.
     if (!nodesCount) {
       try {
-        logger.info('Auto-creating controller');
+        logger.info('Auto-creating controller node');
         callAsync(autoCreateController());
       } catch (err) {
         logger.error('Error while auto-creating controller node:', err);
       }
-    } else {
-      // Test code to remove the first node found
-
-      // try {
-      //   logger.info('Auto-deleting controller');
-      //  callAsync(autoDeleteNode(config.nodes[Object.keys(config.nodes)[0]]));
-      // } catch (err) {
-      //   logger.error('Error while auto-deleting controller node');
-      // }
     }
+  }
 
-    if (config.newParamsDetected) {
-      logger.info('New parameters detected');
+  if (config.newParamsDetected) {
+    logger.info('new config params detected');
+    // this doesn't seem to be working for typed params
+  }
+
+  logger.debug('config => checking for valid config');
+  if (isValidConfig(config.typedCustomData)) {
+    logger.debug('config => typeCustomData is valid config, let\'s use it');
+    const typedData = JSON.stringify(config.typedCustomData);
+    if (currentConfig !== typedData) {
+      logger.debug('config => typedCustomData is different than current config');
+      logger.info('config => writing update to ' + confFile);
+      currentConfig = typedData;
+      fs.writeFileSync(confFilePath, currentConfig);
+      await bridgeStop();
+      await bridgeStart();
     }
   }
 });
 
-// User just went through oAuth authorization. Available with PGC only.
-poly.on('oauth', function(oAuth) {
-  logger.info('Received OAuth code');
-  // oAuth object should contain:
-  // {
-  //   code: "<the authorization code to use to get tokens>"
-  //   state: "<the state worker you appended to the url>"
-  // }
-  // Use it to get access and refresh tokens
-});
+function isValidConfig(conf) {
+  if (!conf) {
+    logger.debug('config not yet valid');
+    return false;
+  }
+
+  const keys = Object.keys(conf);
+  return typedParams.every(p => {
+    if (!p.isRequired) {
+      return true;
+    }
+    return keys.includes(p.name);
+  });
+}
 
 // This is triggered every x seconds. Frequency is configured in the UI.
 poly.on('poll', function(longPoll) {
   callAsync(doPoll(longPoll));
 });
 
-poly.on('oauth', function(oaMessage) {
-  // oaMessage.code: Authorization code received after authorization
-  // oaMessage.state: This must be the worker ID.
-
-  logger.info('Received oAuth message %o', oaMessage);
-  // From here, we need to process the authorization token
-});
-
 // Received a 'stop' message from Polyglot. This NodeServer is shutting down
 poly.on('stop', async function() {
   logger.info('Graceful stop');
-
-  // Make a last short poll and long poll
   await doPoll(false);
   await doPoll(true);
+  await bridgeStop();
 
-  // Tell Interface we are stopping (Our polling is now finished)
   poly.stop();
 });
 
 // Received a 'delete' message from Polyglot. This NodeServer is being removed
-poly.on('delete', function() {
+poly.on('delete', async function() {
   logger.info('Nodeserver is being deleted');
 
-  // We can do some cleanup, then stop.
+  await bridgeStop();
   poly.stop();
 });
 
@@ -224,7 +197,7 @@ async function doPoll(longPoll) {
 async function autoCreateController() {
   try {
     await poly.addNode(
-      new ControllerNode(poly, 'controller', 'controller', 'NodeServer')
+      new ControllerNode(poly, 'controller', 'controller', 'HomeKit NodeServer'),
     );
   } catch (err) {
     logger.error('Error creating controller node');
@@ -234,46 +207,43 @@ async function autoCreateController() {
   poly.addNoticeTemp('newController', 'Controller node initialized', 5);
 }
 
-// Used for testing only
-// async function autoDeleteNode(node) {
-//   try {
-//     await poly.delNode(node);
-//   } catch (err) {
-//     logger.error('Error deleting controller node', err);
-//   }
-//
-//   // Add a notice in the UI, remove it after 5 seconds;
-//   poly.addNotice('delController', 'node removed');
-//
-//   // Waits 5 seconds, then delete the notice
-//   setTimeout(function() {
-//     poly.removeNotice('delController');
-//   }, 5000);
-// }
 
-// Sets the custom params as we want them. Keeps existing params values.
-function initializeCustomParams(currentParams) {
-  const defaultParamKeys = Object.keys(defaultParams);
-  const currentParamKeys = Object.keys(currentParams);
-
-  // Get orphan keys from either currentParams or defaultParams
-  const differentKeys = defaultParamKeys.concat(currentParamKeys)
-  .filter(function(key) {
-    return !(key in defaultParams) || !(key in currentParams);
-  });
-
-  if (differentKeys.length) {
-    let customParams = {};
-
-    // Only keeps params that exists in defaultParams
-    // Sets the params to the existing value, or default value.
-    defaultParamKeys.forEach(function(key) {
-      customParams[key] = currentParams[key] ?
-        currentParams[key] : defaultParams[key];
-    });
-
-    poly.saveCustomParams(customParams);
+async function createHomeKitStatusNode(primaryAddress) {
+  logger.debug('onCreateNew => invoked');
+  const homekitNodeAddress = 'hk001';
+  const node = poly.getNode(homekitNodeAddress);
+  if (node) {
+    logger.debug('node present, deleting to allow full recreation');
+    await poly.delNode(node);
+    await delay(3000);
   }
+
+  try {
+    const nodeName = 'HomeKit Bridge';
+    const homeKitNode = new HomeKitBridgeNode(
+      poly,
+      primaryAddress,
+      homekitNodeAddress,
+      nodeName);
+    const result = await poly.addNode(homeKitNode);
+    logger.info('HomeKit Bridge Node added: %s', result);
+    poly.addNoticeTemp('newHomeKitBridgeNode', 'HomeKit Bridge Node initialized', 5);
+    await homeKitNode.query();
+  } catch (err) {
+    logger.errorStack(err, 'Add node failed:');
+  }
+}
+
+async function bridgeStart() {
+  return hkBridge.start();
+}
+
+async function bridgeStop() {
+  return hkBridge.stop();
+}
+
+function bridgeIsStarted() {
+  return hkBridge.isStarted();
 }
 
 // Call Async function from a non-asynch function without waiting for result,
@@ -291,12 +261,8 @@ function callAsync(promise) {
 function trapUncaughExceptions() {
   // If we get an uncaugthException...
   process.on('uncaughtException', function(err) {
-    logger.error(`uncaughtException REPORT THIS!: ${err.stack}`);
+    console.log(`uncaughtException REPORT THIS!: ${err.stack}`);
   });
-}
-
-function useCloud() {
-  return process.env.MQTTENDPOINT && process.env.STAGE;
 }
 
 // Starts the NodeServer!
