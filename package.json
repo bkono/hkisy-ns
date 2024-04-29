@@ -1,14 +1,14 @@
 {
-  "name": "poly-template-nodejs",
-  "description": "Polyglot NodeServer template for node.js",
-  "version": "1.1.2",
-  "author": "Benoit Mercier",
+  "name": "hkisy",
+  "description": "Polyglot NodeServer for native HomeKit integration",
+  "version": "0.6.2",
+  "author": "Bryan Konowitz",
   "license": "MIT",
   "main": "nodeserver.js",
   "scripts": {
     "linter": "eslint --ignore-path .gitignore ."
   },
-  "repository": "UniversalDevicesInc/poly-template-nodejs",
+  "repository": "bkono/hkisy-ns",
   "dependencies": {
     "async-lock": "^1.1.4",
     "markdown": "^0.5.0",
