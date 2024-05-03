@@ -84,10 +84,7 @@ class Controller(udi_interface.Node):
         return not bool(self.check_missing_params(config))
 
     def start(self, cmd=None):
-        if cmd:
-            LOGGER.info("DON ({}): {}".format(cmd.address, cmd.command))
-        else:
-            LOGGER.info("DON command received with no additional command data")
+        LOGGER.info("DON command received")
 
         if self.process is not None:
             LOGGER.info("HomeKit Bridge process already started")
@@ -142,10 +139,7 @@ class Controller(udi_interface.Node):
         self.setDriver("ST", 1)
 
     def stop(self, cmd=None):
-        if cmd:
-            LOGGER.info("DOF ({}): {}".format(cmd.address, cmd.command))
-        else:
-            LOGGER.info("DOF command received with no additional command data")
+        LOGGER.info("DOF command received ")
 
         if self.process is None:
             LOGGER.info("No HomeKit Bridge process to stop")
