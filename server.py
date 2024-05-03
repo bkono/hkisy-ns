@@ -159,9 +159,9 @@ class Controller(udi_interface.Node):
 
     def query(self, cmd=None):
         if self.process is None:
-            self.setDriver("ST", 1)
-        else:
             self.setDriver("ST", 0)
+        else:
+            self.setDriver("ST", 1)
 
     def discover(self, cmd=None):
         pass
