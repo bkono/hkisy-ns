@@ -1,30 +1,35 @@
-# poly-template-nodejs
 
-This is a Poly template using Node.js.
+# Example 3 Node Server (c) 2021 Robert Paauwe
 
-It works with both Polyglot V2 (On-premises installation) and Polyglot cloud.
+A simple node server that demonstrates how to create a node server that
+has a control node and child device nodes.  This node server simply increments
+a couple of counters and updates GV0 and GV1 with the updated
+count at every poll() interval.
 
-To start developing your Nodeserver, it is easier to set up and test 
-with Polyglot V2. If you don't need such things as oAuth authentication 
-to cloud services, you can fully develop your node server on-premises. 
+## Installation
 
-To get started with an on-premise installation: 
-1. Install Polyglot-V2. [Instructions here](https://github.com/UniversalDevicesInc/polyglot-v2)
-2. Make sure you have Node.js & NPM installed
 
-```
-sudo apt install nodejs
-sudo apt install npm
-```
+### Node Settings
+The settings for this node are:
 
-3. Install this node server
+#### Short Poll
+   * How often to increment the count
+#### Long Poll
+   * Not used
 
-```
-cd ~/.polyglot/nodeservers
-git clone https://github.com/UniversalDevicesInc/poly-template-nodejs
-npm install
-```
+#### nodes
+   * How many child nodes to create
 
-For help developing your node server, refer to the [node.js polyinterface documentation here](https://github.com/UniversalDevicesInc/polyglot-v2-nodejs-interface)
+#### multiplier
+   * Apply the multiplier to count and save in GV1
 
-To get instructions for the cloud version, refer to the [node.js PGC documentation here](https://github.com/UniversalDevicesInc/pgc-nodejs-interface)
+
+## Requirements
+
+1. Polyglot V3.
+2. ISY firmware 5.3.x or later
+
+# Release Notes
+
+- 1.0.0 08/11/2021
+   - Initial version published to github

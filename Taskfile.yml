@@ -1,0 +1,8 @@
+# Taskfile.yml
+version: '3'
+
+tasks:
+  sync:
+    cmds:
+      - rsync -avz --exclude '.git/' --exclude 'venv/' ./ "admin@192.168.4.145:~/workspace/plugin-dev/hkisy-ns"
+    desc: "Synchronize local directory with remote host, excluding .git and venv directories."

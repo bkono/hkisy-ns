@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-npm install
+pip3 install -r requirements.txt --user
+
 bindir="$(dirname $(realpath $0))/bin"
 mkdir -p $bindir
 pushd $bindir

@@ -1,14 +1,22 @@
 {
   "name": "HomeKit ISY",
   "docs": "https://github.com/bkono/hkisy-ns",
-  "type": "node",
-  "executable": "nodeserver.js",
+  "type": "python3",
+  "executable": "server.py",
   "install": "install.sh",
   "description": "HomeKit bridge for ISY devices",
   "notice": "",
   "shortPoll": "500",
   "longPoll": "600",
   "profile_version": "1.1.0",
+  "customParams": {
+      "isy-host": "",
+      "isy-port": 8080,
+      "isy-user": "",
+      "isy-password": "",
+      "pin": "123-44-321",
+      "port": 5544
+  },
   "credits": [
     {
       "title": "Example Node.js based NodeServer",

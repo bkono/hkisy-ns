@@ -1,6 +1,21 @@
 <!-- Version 0.0.1 -->
 <nodeDefs>
 
+    <nodeDef id="HKISYCTRL" nls="HKISYCTRL">
+        <editors />
+        <sts>
+            <st id="ST" editor="BOOL" />
+        </sts>
+        <cmds>
+            <sends />
+            <accepts>
+                <cmd id="QUERY" />
+                <cmd id="DON" />
+                <cmd id="DOF" />
+            </accepts>
+        </cmds>
+    </nodeDef>
+
     <!-- Node server node - KEEP THIS. This will create a nodeserver node showing if the node server is active or not -->
     <nodedef id="CONTROLLER" nls="CONTROLLER">
         <sts>
